@@ -151,6 +151,131 @@ def plot_fid_bars(
     return fig
 
 
+def plot_sde_with_fid(
+    samples: dict[str, "Tensor"],
+    fid_scores: dict[str, float],
+    title: str = "",
+    n_cols: int = 8,
+    img_size_px: int = 120,
+    bar_width_px: int = 300,
+    label_width_px: int = 130,
+) -> go.Figure:
+    """Combined slide figure: image grid on the left, FID bar chart on the right.
+
+    Renders one row per SDE (VP-SDE, VE-SDE, Sub-VP SDE) with ``n_cols``
+    sample images, then a single FID bar chart that spans all rows on the right.
+    Row labels appear as left-side annotations.
+
+    Args:
+        samples (dict[str, Tensor]): mapping from SDE label to image batch of
+            shape (N, C, H, W) in [−1, 1]. Keys must match ``fid_scores``.
+            At least ``n_cols`` images required per entry.
+        fid_scores (dict[str, float]): mapping from SDE label to FID score.
+        title (str): optional figure title at the top.
+        n_cols (int): number of image columns per SDE row.
+        img_size_px (int): pixel height/width for each image cell.
+        bar_width_px (int): pixel width reserved for the FID bar chart column.
+        label_width_px (int): pixel width reserved for the left row-label margin.
+
+    Returns:
+        go.Figure: interactive Plotly figure suitable for embedding in a slide.
+    """
+    row_labels = list(samples.keys())
+    n_rows = len(row_labels)
+
+    # specs: n_cols image cells + 1 bar cell (rowspan=n_rows) per row
+    specs: list[list[dict | None]] = []
+    for r in range(n_rows):
+        row: list[dict | None] = [{"type": "image"}] * n_cols
+        if r == 0:
+            row.append({"type": "xy", "rowspan": n_rows})
+        else:
+            row.append(None)
+        specs.append(row)
+
+    fig = make_subplots(
+        rows=n_rows,
+        cols=n_cols + 1,
+        specs=specs,
+        vertical_spacing=0.03,
+        horizontal_spacing=0.005,
+    )
+
+    # --- image traces ---
+    for row_idx, (label, batch) in enumerate(samples.items(), start=1):
+        for col_idx in range(n_cols):
+            img = _to_uint8(batch[col_idx])
+            fig.add_trace(go.Image(z=img, hoverinfo="skip"), row=row_idx, col=col_idx + 1)
+
+    # --- FID bar chart in the last column (row 1 due to rowspan) ---
+    bar_labels = list(fid_scores.keys())
+    bar_values = list(fid_scores.values())
+    fig.add_trace(
+        go.Bar(
+            x=bar_labels,
+            y=bar_values,
+            text=[f"{v:.1f}" for v in bar_values],
+            textposition="outside",
+            marker_color=_MAROON,
+            name="FID",
+        ),
+        row=1,
+        col=n_cols + 1,
+    )
+
+    # --- axes cleanup ---
+    fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=False)
+    fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False)
+
+    # Re-enable tick labels on the bar chart axes (last subplot column)
+    bar_axis_idx = n_cols + 1
+    fig.update_xaxes(
+        showticklabels=True,
+        tickangle=-30,
+        tickfont=dict(color=_MAROON, size=11),
+        col=bar_axis_idx,
+    )
+    fig.update_yaxes(
+        showticklabels=True,
+        title_text="FID ↓",
+        title_font=dict(color=_MAROON, size=12),
+        gridcolor="#E0D0D0",
+        col=bar_axis_idx,
+    )
+
+    t_margin = 40 if title else 12
+    total_width = label_width_px + n_cols * img_size_px + bar_width_px
+    total_height = n_rows * img_size_px + t_margin + 12
+
+    fig.update_layout(
+        **_LAYOUT_BASE,
+        title=dict(text=title),
+        width=total_width,
+        height=total_height,
+        margin=dict(l=label_width_px, r=20, t=t_margin, b=12),
+        showlegend=False,
+    )
+
+    # --- left-side row label annotations ---
+    for row_idx, label in enumerate(row_labels):
+        # y position: centre of each row, in paper coordinates
+        row_frac_height = 1.0 / n_rows
+        y_centre = 1.0 - (row_idx + 0.5) * row_frac_height
+        fig.add_annotation(
+            xref="paper",
+            yref="paper",
+            x=-label_width_px / total_width,
+            y=y_centre,
+            text=f"<b>{label}</b>",
+            showarrow=False,
+            font=dict(color=_MAROON, family=_FONT_FAMILY, size=13),
+            xanchor="left",
+            yanchor="middle",
+        )
+
+    return fig
+
+
 def save_figure(fig: go.Figure, path: str) -> None:
     """Write a Plotly figure to an interactive HTML file.
 
