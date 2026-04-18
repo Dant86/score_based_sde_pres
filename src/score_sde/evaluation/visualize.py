@@ -2,7 +2,6 @@
 
 import numpy as np
 import plotly.graph_objects as go
-import plotly.express as px
 from plotly.subplots import make_subplots
 from torch import Tensor
 
@@ -125,18 +124,14 @@ def plot_fid_bars(
     labels = list(fid_scores.keys())
     values = list(fid_scores.values())
 
-    fig = px.bar(
-        x=labels,
-        y=values,
-        text=[f"{v:.1f}" for v in values],
-        labels={"x": "Model", "y": "FID"},
-        title=title,
-        color=labels,
-        template=_PLOTLY_TEMPLATE,
-    )
-    fig.update_traces(
-        textposition="outside",
-        marker_color=_MAROON,
+    fig = go.Figure(
+        go.Bar(
+            x=labels,
+            y=values,
+            text=[f"{v:.1f}" for v in values],
+            textposition="outside",
+            marker_color=_MAROON,
+        )
     )
     fig.update_layout(
         **_LAYOUT_BASE,
