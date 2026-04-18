@@ -15,6 +15,7 @@ Individual entrypoints are available if you want to re-run a single eval:
        modal run scripts/eval_modal.py::fid_only
        modal run scripts/eval_modal.py::sampler_comparison
        modal run scripts/eval_modal.py::class_conditional
+       modal run scripts/eval_modal.py::sde_fid
 """
 
 import glob
@@ -432,7 +433,7 @@ def evaluate_all(
     import numpy as np
     import torch
 
-    from score_sde.evaluation.visualize import plot_fid_bars, plot_sample_grid, save_figure
+    from score_sde.evaluation.visualize import plot_fid_bars, plot_sample_grid, plot_sde_with_fid, save_figure
 
     os.makedirs(output_dir, exist_ok=True)
     print("Launching all eval jobs on Modal …")
@@ -472,6 +473,10 @@ def evaluate_all(
 
     fig3 = plot_sample_grid(sampler_samples)
     save_figure(fig3, os.path.join(output_dir, "sampler_comparison.html"))
+
+    # Combined slide figure: samples + FID side by side
+    fig5 = plot_sde_with_fid(sde_samples, fid_scores)
+    save_figure(fig5, os.path.join(output_dir, "sde_with_fid.html"))
 
     print(f"\nAll figures written to {output_dir}/")
     print("FID scores:")
@@ -553,6 +558,54 @@ def sampler_comparison(n_steps: int = 1000, output_dir: str = "./eval_output") -
 
     fig = plot_sample_grid(samples)
     save_figure(fig, os.path.join(output_dir, "sampler_comparison.html"))
+
+
+@app.local_entrypoint()
+def sde_fid(
+    n_steps: int = 1000,
+    fid_steps: int = 250,
+    n_fid_samples: int = 5000,
+    output_dir: str = "./eval_output",
+) -> None:
+    """Generate the combined SDE sample grid + FID bar chart slide figure.
+
+    Runs ``generate_sde_grid`` and ``compute_all_fid`` in parallel on Modal,
+    then merges them into a single side-by-side HTML figure.
+
+    Args:
+        n_steps (int): reverse diffusion steps for the sample grid.
+        fid_steps (int): reverse diffusion steps for FID generation (250 is
+            stable and 4× faster than 1000).
+        n_fid_samples (int): images used to estimate FID.
+        output_dir (str): directory to write ``sde_with_fid.html`` into.
+    """
+    import os
+
+    import numpy as np
+    import torch
+
+    from score_sde.evaluation.visualize import plot_sde_with_fid, save_figure
+
+    os.makedirs(output_dir, exist_ok=True)
+    print("Launching SDE grid + FID jobs in parallel on Modal …")
+
+    sde_handle = generate_sde_grid.spawn(n_steps=n_steps)
+    fid_handle = compute_all_fid.spawn(n_samples=n_fid_samples, n_steps=fid_steps)
+
+    raw = sde_handle.get()
+    fid_scores: dict[str, float] = fid_handle.get()
+
+    samples: dict[str, torch.Tensor] = {}
+    for label, imgs in raw.items():
+        arr = np.array(imgs, dtype=np.uint8)
+        samples[label] = torch.from_numpy(arr).permute(0, 3, 1, 2).float() / 127.5 - 1.0
+
+    print("FID scores:")
+    for label, fid in fid_scores.items():
+        print(f"  {label}: {fid:.2f}")
+
+    fig = plot_sde_with_fid(samples, fid_scores)
+    save_figure(fig, os.path.join(output_dir, "sde_with_fid.html"))
 
 
 @app.local_entrypoint()
