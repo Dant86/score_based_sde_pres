@@ -56,7 +56,7 @@ modal setup        # opens browser for one-time auth
 ### 2 — Launch training
 
 ```bash
-modal run scripts/train_modal.py
+modal run scripts/train_modal.py::main
 ```
 
 This fans out **three parallel H100 containers** — one per SDE type.

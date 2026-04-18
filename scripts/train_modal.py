@@ -32,10 +32,10 @@ image = (
     modal.Image.debian_slim(python_version="3.14")
     # Install all PyPI dependencies declared in pyproject.toml
     .pip_install_from_pyproject(str(_repo_root / "pyproject.toml"))
-    # Copy the local package source into the image
-    .copy_local_dir(str(_repo_root / "src"), "/root/src")
     # Make the package importable without an editable install
     .env({"PYTHONPATH": "/root/src"})
+    # Copy the local package source into the image
+    .add_local_dir(str(_repo_root / "src"), "/root/src")
 )
 
 
