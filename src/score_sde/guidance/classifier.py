@@ -56,12 +56,16 @@ def make_guided_score_fn(
     """
 
     def guided(x: Tensor, t: Tensor) -> Tensor:
-        x_req = x.detach().requires_grad_(True)
-        logits = classifier(x_req)
-        log_prob = F.log_softmax(logits, dim=-1)
-        target = torch.full((x.shape[0],), label, dtype=torch.long, device=x.device)
-        loss = F.nll_loss(log_prob, target)
-        (grad,) = torch.autograd.grad(loss, x_req)
+        # torch.enable_grad() is required because samplers run inside
+        # torch.no_grad(), which would otherwise prevent autograd from
+        # building the graph needed to compute ∇_x log p(y | x_t).
+        with torch.enable_grad():
+            x_req = x.detach().requires_grad_(True)
+            logits = classifier(x_req)
+            log_prob = F.log_softmax(logits, dim=-1)
+            target = torch.full((x.shape[0],), label, dtype=torch.long, device=x.device)
+            loss = F.nll_loss(log_prob, target)
+            (grad,) = torch.autograd.grad(loss, x_req)
         base = score_fn(x.detach(), t)
         # Gradient of log p(y|x) points toward higher class probability
         return base - guidance_scale * grad.detach()
