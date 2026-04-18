@@ -51,8 +51,8 @@ eval_output/
 *.ckpt
 *.safetensors
 
-# Dataset cache
-data/
+# Dataset cache (root-level only — does not affect src/score_sde/data/)
+/data/
 
 # Logs
 *.log

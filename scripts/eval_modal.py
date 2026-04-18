@@ -26,8 +26,8 @@ import modal
 # Infrastructure (reuses the same volume as training)
 # ---------------------------------------------------------------------------
 
-APP_NAME = "score-sde-eval"
-VOLUME_NAME = "score-sde-ckpts"
+APP_NAME = "score-sde-cifar10-eval"
+VOLUME_NAME = "score-sde-cifar10-ckpts"
 CHECKPOINT_ROOT = "/checkpoints"
 GPU_TYPE = "H100"
 TIMEOUT_SECONDS = 3 * 60 * 60  # 3 h
@@ -54,7 +54,7 @@ _SAMPLER_LABELS = {
     "predictor_corrector": "Predictor-Corrector",
     "ode": "Probability Flow ODE",
 }
-_DEFAULT_CLASSES = [19, 51, 70]  # cattle, mushroom, rose — visually distinct
+_DEFAULT_CLASSES = [0, 5, 8]  # airplane, dog, ship — visually distinct CIFAR-10 classes
 
 
 def _latest_ckpt(sde_type: str) -> str:
@@ -223,13 +223,13 @@ def compute_all_fid(n_samples: int = 5000, n_steps: int = 250) -> dict[str, floa
     """
     import torch
 
-    from score_sde.data.cifar100 import get_cifar100_loaders
+    from score_sde.data.cifar import get_cifar_loaders
     from score_sde.evaluation.fid import compute_fid
     from score_sde.evaluation.sampler_runner import generate_samples
     from score_sde.samplers.euler_maruyama import EulerMaruyama
 
     device = torch.device("cuda")
-    _, val_loader = get_cifar100_loaders(data_dir="/tmp/data", batch_size=64)
+    _, val_loader = get_cifar_loaders(dataset="cifar10", data_dir="/tmp/data", batch_size=64)
     sampler = EulerMaruyama()
     scores: dict[str, float] = {}
 
@@ -317,7 +317,7 @@ def generate_class_grid(
     import torch
 
     from score_sde.evaluation.sampler_runner import generate_samples
-    from score_sde.evaluation.visualize import CIFAR100_CLASSES, _to_uint8
+    from score_sde.evaluation.visualize import CIFAR10_CLASSES, _to_uint8
     from score_sde.guidance.classifier import NoisyClassifier, make_guided_score_fn
     from score_sde.samplers.euler_maruyama import EulerMaruyama
 
@@ -332,7 +332,7 @@ def generate_class_grid(
         )
 
     device = torch.device("cuda")
-    classifier = NoisyClassifier(num_classes=100).to(device)
+    classifier = NoisyClassifier(num_classes=10).to(device)
     classifier.load_state_dict(torch.load(cls_path, map_location=device, weights_only=True))
     classifier.eval()
 
@@ -342,7 +342,7 @@ def generate_class_grid(
     result: dict[str, list] = {}
 
     for cls_idx in classes:
-        label = f"{cls_idx}: {CIFAR100_CLASSES.get(cls_idx, str(cls_idx))}"
+        label = f"{cls_idx}: {CIFAR10_CLASSES.get(cls_idx, str(cls_idx))}"
         score_fn = model.as_score_fn(sde)
         guided_fn = make_guided_score_fn(score_fn, classifier, cls_idx, guidance_scale)
         samples = generate_samples(sde, guided_fn, sampler, n_per_class, n_per_class, n_steps, device)
@@ -373,16 +373,16 @@ def train_classifier_fn(n_epochs: int = 50) -> str:
     """
     import torch
 
-    from score_sde.data.cifar100 import get_cifar100_loaders
+    from score_sde.data.cifar import get_cifar_loaders
     from score_sde.sdes.subvp import SubVPSDE
     from score_sde.training.classifier_trainer import train_noisy_classifier
 
     device = torch.device("cuda")
     sde = SubVPSDE()
-    train_loader, _ = get_cifar100_loaders(data_dir="/tmp/data", batch_size=128)
+    train_loader, _ = get_cifar_loaders(dataset="cifar10", data_dir="/tmp/data", batch_size=128)
     ckpt_path = f"{CHECKPOINT_ROOT}/classifier.pt"
 
-    train_noisy_classifier(sde, train_loader, device, n_epochs=n_epochs, checkpoint_path=ckpt_path)
+    train_noisy_classifier(sde, train_loader, device, num_classes=10, n_epochs=n_epochs, checkpoint_path=ckpt_path)
     volume.commit()
     return ckpt_path
 
