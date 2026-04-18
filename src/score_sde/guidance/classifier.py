@@ -69,16 +69,9 @@ def make_guided_score_fn(
 
         base = score_fn(x.detach(), t)
 
-        # Normalise the guidance gradient to the same per-sample ℓ2 norm as
-        # the score before applying guidance_scale.  Without this, the raw
-        # classifier gradient can be orders of magnitude smaller than the
-        # score, making γ meaningless and leaving samples unconditional.
-        b = x.shape[0]
-        grad = grad.detach()
-        grad_norm = grad.reshape(b, -1).norm(dim=-1).view(b, 1, 1, 1).clamp(min=1e-8)
-        score_norm = base.reshape(b, -1).norm(dim=-1).view(b, 1, 1, 1).clamp(min=1e-8)
-        grad_normalised = grad * (score_norm / grad_norm)
-
-        return base - guidance_scale * grad_normalised
+        # Use raw gradient — normalising to score magnitude amplified it by
+        # 100–200× and produced adversarial noise.  Tune guidance_scale
+        # directly; typical working range is 50–200 for raw classifier grads.
+        return base - guidance_scale * grad.detach()
 
     return guided

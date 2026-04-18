@@ -293,7 +293,7 @@ def generate_class_grid(
     classes: list[int] | None = None,
     n_per_class: int = 8,
     n_steps: int = 1000,
-    guidance_scale: float = 6.0,
+    guidance_scale: float = 100.0,
 ) -> dict[str, list]:
     """Generate class-conditional Sub-VP SDE samples via classifier guidance.
 
@@ -558,7 +558,7 @@ def sampler_comparison(n_steps: int = 1000, output_dir: str = "./eval_output") -
 @app.local_entrypoint()
 def class_conditional(
     n_steps: int = 1000,
-    guidance_scale: float = 6.0,
+    guidance_scale: float = 100.0,
     output_dir: str = "./eval_output",
 ) -> None:
     """Generate the class-conditional sample grid for Sub-VP SDE.
