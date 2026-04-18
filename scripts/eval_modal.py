@@ -459,18 +459,18 @@ def evaluate_all(
 
     try:
         class_samples = _deserialise(class_handle.get())
-        fig4 = plot_sample_grid(class_samples, title="Sub-VP SDE — Class-Conditional Samples (guidance γ=3)")
+        fig4 = plot_sample_grid(class_samples)
         save_figure(fig4, os.path.join(output_dir, "class_conditional.html"))
     except Exception as exc:
         print(f"  class_conditional skipped: {exc}")
 
-    fig1 = plot_sample_grid(sde_samples, title="Generated Samples by SDE Type (Euler-Maruyama)")
+    fig1 = plot_sample_grid(sde_samples)
     save_figure(fig1, os.path.join(output_dir, "sde_comparison.html"))
 
     fig2 = plot_fid_bars(fid_scores)
     save_figure(fig2, os.path.join(output_dir, "fid_comparison.html"))
 
-    fig3 = plot_sample_grid(sampler_samples, title="Sub-VP SDE — Sampler Comparison")
+    fig3 = plot_sample_grid(sampler_samples)
     save_figure(fig3, os.path.join(output_dir, "sampler_comparison.html"))
 
     print(f"\nAll figures written to {output_dir}/")
@@ -502,7 +502,7 @@ def sde_comparison(n_steps: int = 1000, output_dir: str = "./eval_output") -> No
         arr = np.array(imgs, dtype=np.uint8)
         samples[label] = torch.from_numpy(arr).permute(0, 3, 1, 2).float() / 127.5 - 1.0
 
-    fig = plot_sample_grid(samples, title="Generated Samples by SDE Type (Euler-Maruyama)")
+    fig = plot_sample_grid(samples)
     save_figure(fig, os.path.join(output_dir, "sde_comparison.html"))
 
 
@@ -551,7 +551,7 @@ def sampler_comparison(n_steps: int = 1000, output_dir: str = "./eval_output") -
         arr = np.array(imgs, dtype=np.uint8)
         samples[label] = torch.from_numpy(arr).permute(0, 3, 1, 2).float() / 127.5 - 1.0
 
-    fig = plot_sample_grid(samples, title="Sub-VP SDE — Sampler Comparison")
+    fig = plot_sample_grid(samples)
     save_figure(fig, os.path.join(output_dir, "sampler_comparison.html"))
 
 
@@ -585,5 +585,5 @@ def class_conditional(
         arr = np.array(imgs, dtype=np.uint8)
         samples[label] = torch.from_numpy(arr).permute(0, 3, 1, 2).float() / 127.5 - 1.0
 
-    fig = plot_sample_grid(samples, title=f"Sub-VP SDE — Class-Conditional Samples (γ={guidance_scale})")
+    fig = plot_sample_grid(samples)
     save_figure(fig, os.path.join(output_dir, "class_conditional.html"))

@@ -31,15 +31,17 @@ CIFAR100_CLASSES: dict[int, str] = {
     99: "worm",
 }
 
-_MAROON = "#800000"
-_PLOTLY_TEMPLATE = "plotly_white"
+# Metropolis theme + Beaver colour scheme
+_MAROON = "#800000"          # \usecolortheme{beaver} primary
+_BG = "#FAFAFA"              # Metropolis slide background
+_FONT_FAMILY = "Fira Sans, sans-serif"
 
 _LAYOUT_BASE = dict(
-    template=_PLOTLY_TEMPLATE,
-    paper_bgcolor="white",
-    plot_bgcolor="white",
-    font=dict(color=_MAROON, family="serif"),
-    title_font=dict(color=_MAROON, family="serif", size=18),
+    template="plotly_white",
+    paper_bgcolor=_BG,
+    plot_bgcolor=_BG,
+    font=dict(color=_MAROON, family=_FONT_FAMILY),
+    title_font=dict(color=_MAROON, family=_FONT_FAMILY, size=16),
 )
 
 
@@ -54,7 +56,7 @@ def plot_sample_grid(
     samples: dict[str, Tensor],
     title: str = "",
     n_cols: int = 8,
-    img_size_px: int = 96,
+    img_size_px: int = 120,
 ) -> go.Figure:
     """Render a grid of generated images grouped by row label.
 
@@ -86,18 +88,22 @@ def plot_sample_grid(
             fig.add_trace(go.Image(z=img, hoverinfo="skip"), row=row_idx, col=col_idx + 1)
 
     _LABEL_WIDTH = 160  # px reserved for right-side row-title annotations
+    t_margin = 40 if title else 12  # skip top padding when slide already has a title
     fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=False)
     fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False)
     fig.update_layout(
         **_LAYOUT_BASE,
         title=dict(text=title),
         width=n_cols * img_size_px + _LABEL_WIDTH,
-        height=n_rows * img_size_px + 80,
-        margin=dict(l=20, r=_LABEL_WIDTH, t=60, b=20),
+        height=n_rows * img_size_px + t_margin + 12,
+        margin=dict(l=20, r=_LABEL_WIDTH, t=t_margin, b=12),
         showlegend=False,
     )
     for annotation in fig.layout.annotations:
-        annotation.update(font=dict(color=_MAROON, family="serif", size=13), textangle=0)
+        annotation.update(
+            font=dict(color=_MAROON, family=_FONT_FAMILY, size=13),
+            textangle=0,
+        )
 
     return fig
 
@@ -135,11 +141,11 @@ def plot_fid_bars(
     fig.update_layout(
         **_LAYOUT_BASE,
         showlegend=False,
-        yaxis=dict(title="FID ↓", gridcolor="#e0e0e0"),
+        yaxis=dict(title="FID ↓", gridcolor="#E0D0D0"),
         xaxis=dict(linecolor=_MAROON),
-        width=600,
-        height=420,
-        margin=dict(t=60, b=60),
+        width=620,
+        height=400,
+        margin=dict(t=50, b=50, l=60, r=20),
     )
     return fig
 
