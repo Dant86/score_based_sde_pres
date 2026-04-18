@@ -1,0 +1,142 @@
+"""Plotly figure generators for score-SDE evaluation outputs."""
+
+import numpy as np
+import plotly.graph_objects as go
+import plotly.express as px
+from plotly.subplots import make_subplots
+from torch import Tensor
+
+# Fine-grained CIFAR-100 class names (index → human label)
+CIFAR100_CLASSES: dict[int, str] = {
+    0: "apple", 1: "aquarium fish", 2: "baby", 3: "bear", 4: "beaver",
+    5: "bed", 6: "bee", 7: "beetle", 8: "bicycle", 9: "bottle",
+    10: "bowl", 11: "boy", 12: "bridge", 13: "bus", 14: "butterfly",
+    15: "camel", 16: "can", 17: "castle", 18: "caterpillar", 19: "cattle",
+    20: "chair", 21: "chimpanzee", 22: "clock", 23: "cloud", 24: "cockroach",
+    25: "couch", 26: "crab", 27: "crocodile", 28: "cup", 29: "dinosaur",
+    30: "dolphin", 31: "elephant", 32: "flatfish", 33: "forest", 34: "fox",
+    35: "girl", 36: "hamster", 37: "house", 38: "kangaroo", 39: "keyboard",
+    40: "lamp", 41: "lawn mower", 42: "leopard", 43: "lion", 44: "lizard",
+    45: "lobster", 46: "man", 47: "maple tree", 48: "motorcycle", 49: "mountain",
+    50: "mouse", 51: "mushroom", 52: "oak tree", 53: "orange", 54: "orchid",
+    55: "otter", 56: "palm tree", 57: "pear", 58: "pickup truck", 59: "pine tree",
+    60: "plain", 61: "plate", 62: "poppy", 63: "porcupine", 64: "possum",
+    65: "rabbit", 66: "raccoon", 67: "ray", 68: "road", 69: "rocket",
+    70: "rose", 71: "sea", 72: "seal", 73: "shark", 74: "shrew",
+    75: "skunk", 76: "skyscraper", 77: "snail", 78: "snake", 79: "spider",
+    80: "squirrel", 81: "streetcar", 82: "sunflower", 83: "sweet pepper",
+    84: "table", 85: "tank", 86: "telephone", 87: "television", 88: "tiger",
+    89: "tractor", 90: "train", 91: "trout", 92: "tulip", 93: "turtle",
+    94: "wardrobe", 95: "whale", 96: "willow tree", 97: "wolf", 98: "woman",
+    99: "worm",
+}
+
+_PLOTLY_TEMPLATE = "plotly_dark"
+
+
+def _to_uint8(t: Tensor) -> np.ndarray:
+    """Convert a single image tensor (C, H, W) in [−1, 1] to (H, W, C) uint8."""
+    arr = t.permute(1, 2, 0).cpu().float().numpy()
+    arr = ((arr + 1.0) / 2.0 * 255.0).clip(0, 255).astype(np.uint8)
+    return arr
+
+
+def plot_sample_grid(
+    samples: dict[str, Tensor],
+    title: str = "",
+    n_cols: int = 8,
+    img_size_px: int = 96,
+) -> go.Figure:
+    """Render a grid of generated images grouped by row label.
+
+    Args:
+        samples (dict[str, Tensor]): mapping from row label to image batch of
+            shape (N, C, H, W) in [−1, 1]. At least ``n_cols`` images required
+            per entry.
+        title (str): figure title displayed at the top.
+        n_cols (int): number of image columns per row.
+        img_size_px (int): pixel height and width to render each image cell.
+
+    Returns:
+        go.Figure: interactive Plotly figure with one subplot per image.
+    """
+    row_labels = list(samples.keys())
+    n_rows = len(row_labels)
+
+    fig = make_subplots(
+        rows=n_rows,
+        cols=n_cols,
+        row_titles=row_labels,
+        vertical_spacing=0.04,
+        horizontal_spacing=0.005,
+    )
+
+    for row_idx, (label, batch) in enumerate(samples.items(), start=1):
+        for col_idx in range(n_cols):
+            img = _to_uint8(batch[col_idx])
+            fig.add_trace(go.Image(z=img, hoverinfo="skip"), row=row_idx, col=col_idx + 1)
+
+    cell_px = img_size_px
+    fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=False)
+    fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False)
+    fig.update_layout(
+        title=dict(text=title, font=dict(size=18)),
+        template=_PLOTLY_TEMPLATE,
+        width=n_cols * cell_px + 120,   # extra room for row labels
+        height=n_rows * cell_px + 80,
+        margin=dict(l=120, r=20, t=60, b=20),
+        showlegend=False,
+    )
+    # Style the row-title annotations
+    for annotation in fig.layout.annotations:
+        annotation.update(font=dict(size=13), textangle=0)
+
+    return fig
+
+
+def plot_fid_bars(
+    fid_scores: dict[str, float],
+    title: str = "FID Comparison (↓ better)",
+) -> go.Figure:
+    """Render a bar chart comparing FID scores across models or samplers.
+
+    Args:
+        fid_scores (dict[str, float]): mapping from model/sampler label to FID
+            score. Lower is better.
+        title (str): figure title.
+
+    Returns:
+        go.Figure: Plotly bar chart with value annotations on each bar.
+    """
+    labels = list(fid_scores.keys())
+    values = list(fid_scores.values())
+
+    fig = px.bar(
+        x=labels,
+        y=values,
+        text=[f"{v:.1f}" for v in values],
+        labels={"x": "Model", "y": "FID"},
+        title=title,
+        color=labels,
+        template=_PLOTLY_TEMPLATE,
+    )
+    fig.update_traces(textposition="outside")
+    fig.update_layout(
+        showlegend=False,
+        yaxis=dict(title="FID ↓"),
+        width=600,
+        height=420,
+        margin=dict(t=60, b=60),
+    )
+    return fig
+
+
+def save_figure(fig: go.Figure, path: str) -> None:
+    """Write a Plotly figure to an interactive HTML file.
+
+    Args:
+        fig (go.Figure): figure to serialise.
+        path (str): destination file path (should end in ``.html``).
+    """
+    fig.write_html(path, include_plotlyjs="cdn")
+    print(f"  Saved: {path}")
