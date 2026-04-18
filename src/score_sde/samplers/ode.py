@@ -18,7 +18,17 @@ class ProbabilityFlowODE(Sampler):
     """
 
     def _drift(self, x: Tensor, t: Tensor, sde: SDE, score_fn: ScoreFn) -> Tensor:
-        """Probability-flow ODE drift (negated for reverse-time integration)."""
+        """Compute the probability-flow ODE drift negated for reverse-time integration.
+
+        Args:
+            x (Tensor): current sample tensor of shape (B, C, H, W).
+            t (Tensor): current time values of shape (B,).
+            sde (SDE): forward SDE providing drift and diffusion coefficients.
+            score_fn (ScoreFn): s(x, t) ≈ ∇_x log p_t(x).
+
+        Returns:
+            Tensor: ODE drift tensor of shape (B, C, H, W).
+        """
         f, g = sde.sde(x, t)
         score = score_fn(x, t)
         return f - 0.5 * g[:, None, None, None] ** 2 * score

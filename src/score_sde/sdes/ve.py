@@ -23,7 +23,14 @@ class VESDE(SDE):
         self._log_ratio = math.log(sigma_max / sigma_min)
 
     def _sigma(self, t: Tensor) -> Tensor:
-        """σ(t) = σ_min (σ_max/σ_min)^t.  Shape: (B,)."""
+        """Compute σ(t) = σ_min (σ_max/σ_min)^t.
+
+        Args:
+            t (Tensor): continuous time values of shape (B,).
+
+        Returns:
+            Tensor: noise standard deviation values of shape (B,).
+        """
         return self.sigma_min * (self.sigma_max / self.sigma_min) ** t
 
     def sde(self, x: Tensor, t: Tensor) -> tuple[Tensor, Tensor]:

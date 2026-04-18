@@ -40,13 +40,26 @@ class ScoreNet(nn.Module):
         """Predict noise ε given noisy image x and continuous time t ∈ [0, 1].
 
         UNet2DModel expects integer timesteps in [0, 999]; we scale accordingly.
-        Returns noise_pred of shape (B, C, H, W).
+
+        Args:
+            x (Tensor): noisy image tensor of shape (B, C, H, W).
+            t (Tensor): continuous time values in [0, 1] of shape (B,).
+
+        Returns:
+            Tensor: predicted noise of shape (B, C, H, W).
         """
         t_unet = (t * 999.0).long()
         return self.unet(x, t_unet).sample  # .sample extracts Tensor from UNet2DOutput
 
     def as_score_fn(self, sde: SDE) -> ScoreFn:
-        """Return s(x,t) = −ε_θ(x,t) / σ(t), the approximate score function."""
+        """Return the approximate score function s(x, t) = −ε_θ(x, t) / σ(t).
+
+        Args:
+            sde (SDE): forward SDE used to compute the marginal std σ(t).
+
+        Returns:
+            ScoreFn: callable score function mapping (x, t) to score estimates.
+        """
 
         def score_fn(x: Tensor, t: Tensor) -> Tensor:
             _, std = sde.marginal_prob(x, t)

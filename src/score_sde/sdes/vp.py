@@ -23,11 +23,25 @@ class VPSDE(SDE):
 
     # ------------------------------------------------------------------ helpers
     def _beta(self, t: Tensor) -> Tensor:
-        """β(t) = β_min + t(β_max − β_min).  Shape: (B,)."""
+        """Compute β(t) = β_min + t(β_max − β_min).
+
+        Args:
+            t (Tensor): continuous time values of shape (B,).
+
+        Returns:
+            Tensor: noise schedule values of shape (B,).
+        """
         return self.beta_min + t * (self.beta_max - self.beta_min)
 
     def _log_mean_coeff(self, t: Tensor) -> Tensor:
-        """log α(t) = −¼ t²(β_max−β_min) − ½ t β_min.  Shape: (B,)."""
+        """Compute log α(t) = −¼ t²(β_max−β_min) − ½ t β_min.
+
+        Args:
+            t (Tensor): continuous time values of shape (B,).
+
+        Returns:
+            Tensor: log of the mean coefficient of shape (B,).
+        """
         return -0.25 * t**2 * (self.beta_max - self.beta_min) - 0.5 * t * self.beta_min
 
     # ------------------------------------------------------------------ SDE API

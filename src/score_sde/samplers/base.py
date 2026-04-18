@@ -25,12 +25,12 @@ class Sampler(ABC):
         """Draw samples by running the reverse SDE / ODE from t=T to t=eps.
 
         Args:
-            sde:       forward SDE (provides prior_sampling, sde coefficients)
-            score_fn:  s(x,t) ≈ ∇_x log p_t(x)
-            shape:     (B, C, H, W)
-            n_steps:   number of discretisation steps
-            device:    target device
+            sde (SDE): forward SDE providing prior_sampling and sde coefficients.
+            score_fn (ScoreFn): s(x, t) ≈ ∇_x log p_t(x).
+            shape (tuple[int, ...]): desired output shape, e.g. (B, C, H, W).
+            n_steps (int): number of discretisation steps.
+            device (torch.device): target device.
 
         Returns:
-            Tensor of shape `shape`, values clipped to [−1, 1].
+            Tensor: samples of shape ``shape``, values clipped to [−1, 1].
         """

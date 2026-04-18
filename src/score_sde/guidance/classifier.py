@@ -43,13 +43,16 @@ def make_guided_score_fn(
 ) -> ScoreFn:
     """Wrap a base score function with classifier guidance.
 
-    Guided score: s̃(x,t) = s(x,t) + γ · ∇_x log p(y | x_t)
+    Guided score: s̃(x, t) = s(x, t) + γ · ∇_x log p(y | x_t).
 
     Args:
-        score_fn:       base unconditional score function
-        classifier:     NoisyClassifier (must be in eval mode)
-        label:          target class index
-        guidance_scale: γ, strength of guidance
+        score_fn (ScoreFn): base unconditional score function.
+        classifier (NoisyClassifier): noisy classifier that must be in eval mode.
+        label (int): target class index.
+        guidance_scale (float): γ, strength of the classifier guidance.
+
+    Returns:
+        ScoreFn: guided score function mapping (x, t) to guided score estimates.
     """
 
     def guided(x: Tensor, t: Tensor) -> Tensor:

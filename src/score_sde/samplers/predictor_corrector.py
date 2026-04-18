@@ -21,7 +21,16 @@ class PredictorCorrector(Sampler):
         self.snr = snr
 
     def _langevin_step(self, x: Tensor, t: Tensor, score_fn: ScoreFn) -> Tensor:
-        """One annealed Langevin corrector step."""
+        """Perform one annealed Langevin corrector step.
+
+        Args:
+            x (Tensor): current sample tensor of shape (B, C, H, W).
+            t (Tensor): current time values of shape (B,).
+            score_fn (ScoreFn): s(x, t) ≈ ∇_x log p_t(x).
+
+        Returns:
+            Tensor: updated sample tensor of shape (B, C, H, W).
+        """
         score = score_fn(x, t)
         noise = torch.randn_like(x)
         # Adaptive step size: α = (snr · ‖z‖ / ‖s‖)²·2
