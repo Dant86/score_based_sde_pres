@@ -474,6 +474,33 @@ def evaluate_all(
 
 
 @app.local_entrypoint()
+def sde_comparison(n_steps: int = 1000, output_dir: str = "./eval_output") -> None:
+    """Generate the 3×8 sample grid comparing VP-SDE, VE-SDE, and Sub-VP SDE.
+
+    Args:
+        n_steps (int): reverse diffusion steps.
+        output_dir (str): directory to write ``sde_comparison.html`` into.
+    """
+    import os
+
+    import numpy as np
+    import torch
+
+    from score_sde.evaluation.visualize import plot_sample_grid, save_figure
+
+    os.makedirs(output_dir, exist_ok=True)
+    raw = generate_sde_grid.remote(n_steps=n_steps)
+
+    samples: dict[str, torch.Tensor] = {}
+    for label, imgs in raw.items():
+        arr = np.array(imgs, dtype=np.uint8)
+        samples[label] = torch.from_numpy(arr).permute(0, 3, 1, 2).float() / 127.5 - 1.0
+
+    fig = plot_sample_grid(samples, title="Generated Samples by SDE Type (Euler-Maruyama)")
+    save_figure(fig, os.path.join(output_dir, "sde_comparison.html"))
+
+
+@app.local_entrypoint()
 def fid_only(n_samples: int = 5000, n_steps: int = 1000, output_dir: str = "./eval_output") -> None:
     """Compute and display FID for all three models, without generating figures.
 
