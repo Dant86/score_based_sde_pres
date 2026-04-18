@@ -17,8 +17,8 @@ import modal
 # App & infrastructure
 # ---------------------------------------------------------------------------
 
-APP_NAME = "score-sde"
-VOLUME_NAME = "score-sde-ckpts"
+APP_NAME = "score-sde-cifar10"
+VOLUME_NAME = "score-sde-cifar10-ckpts"
 CHECKPOINT_ROOT = "/checkpoints"
 GPU_TYPE = "H100"
 TIMEOUT_SECONDS = 6 * 60 * 60  # 6 h per model
@@ -55,7 +55,7 @@ def train_one(sde_type: str) -> str:
     import torch
 
     from score_sde.config import ModelConfig, SDEConfig, TrainConfig
-    from score_sde.data.cifar100 import get_cifar100_loaders
+    from score_sde.data.cifar import get_cifar_loaders
     from score_sde.models.score_net import ScoreNet
     from score_sde.sdes.subvp import SubVPSDE
     from score_sde.sdes.ve import VESDE
@@ -89,7 +89,8 @@ def train_one(sde_type: str) -> str:
         layers_per_block=model_cfg.layers_per_block,
     )
 
-    train_loader, _ = get_cifar100_loaders(
+    train_loader, _ = get_cifar_loaders(
+        dataset="cifar10",
         data_dir="/tmp/data",
         batch_size=train_cfg.batch_size,
         num_workers=train_cfg.num_workers,

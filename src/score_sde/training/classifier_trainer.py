@@ -17,11 +17,12 @@ def train_noisy_classifier(
     sde: SDE,
     train_loader: DataLoader,
     device: torch.device,
+    num_classes: int = 10,
     n_epochs: int = 50,
     lr: float = 1e-3,
     checkpoint_path: str = "checkpoints/classifier.pt",
 ) -> NoisyClassifier:
-    """Train a NoisyClassifier on CIFAR-100 images corrupted by the forward SDE.
+    """Train a NoisyClassifier on CIFAR images corrupted by the forward SDE.
 
     For each batch the procedure is:
 
@@ -34,9 +35,10 @@ def train_noisy_classifier(
 
     Args:
         sde (SDE): forward SDE whose marginal is used to corrupt images.
-        train_loader (DataLoader): CIFAR-100 training loader yielding
+        train_loader (DataLoader): CIFAR training loader yielding
             ``(image, label)`` batches with images in [−1, 1].
         device (torch.device): target device for training.
+        num_classes (int): number of output classes (10 for CIFAR-10, 100 for CIFAR-100).
         n_epochs (int): number of full passes over the training set.
         lr (float): AdamW learning rate.
         checkpoint_path (str): where to save the final classifier weights.
@@ -44,7 +46,7 @@ def train_noisy_classifier(
     Returns:
         NoisyClassifier: trained classifier moved to ``device``.
     """
-    classifier = NoisyClassifier(num_classes=100).to(device)
+    classifier = NoisyClassifier(num_classes=num_classes).to(device)
     optimizer = AdamW(classifier.parameters(), lr=lr)
     os.makedirs(os.path.dirname(checkpoint_path) or ".", exist_ok=True)
 

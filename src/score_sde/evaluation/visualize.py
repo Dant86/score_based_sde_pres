@@ -5,6 +5,12 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from torch import Tensor
 
+# CIFAR-10 class names (index → human label)
+CIFAR10_CLASSES: dict[int, str] = {
+    0: "airplane", 1: "automobile", 2: "bird", 3: "cat", 4: "deer",
+    5: "dog", 6: "frog", 7: "horse", 8: "ship", 9: "truck",
+}
+
 # Fine-grained CIFAR-100 class names (index → human label)
 CIFAR100_CLASSES: dict[int, str] = {
     0: "apple", 1: "aquarium fish", 2: "baby", 3: "bear", 4: "beaver",
