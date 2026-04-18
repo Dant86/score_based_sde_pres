@@ -12,6 +12,9 @@ dependencies = [
     "modal>=0.62.0",
     "tqdm>=4.66.0",
     "numpy>=2.0.0",
+    "jupyter",
+    "ipywidgets",
+    "plotly",
 ]
 
 [project.optional-dependencies]
