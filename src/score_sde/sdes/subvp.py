@@ -11,7 +11,8 @@ from .base import SDE
 class SubVPSDE(SDE):
     """Sub-Variance-Preserving SDE — smaller diffusion coefficient than VP.
 
-    Marginal std: σ̃(t) = 1 − exp(−∫₀ᵗ β(s)ds)  [cf. VP: √(1 − exp(−∫β))].
+    Marginal std is σ̃(t) = 1 − exp(−∫₀ᵗ β(s)ds), compared to VP's
+    √(1 − exp(−∫β)).
     """
 
     def __init__(
@@ -28,7 +29,14 @@ class SubVPSDE(SDE):
         return self.beta_min + t * (self.beta_max - self.beta_min)
 
     def _log_mean_coeff(self, t: Tensor) -> Tensor:
-        """log α(t) = −½ ∫₀ᵗ β(s)ds.  Shape: (B,)."""
+        """Compute log α(t) = −½ ∫₀ᵗ β(s)ds.
+
+        Args:
+            t (Tensor): continuous time values of shape (B,).
+
+        Returns:
+            Tensor: log of the mean coefficient of shape (B,).
+        """
         return -0.25 * t**2 * (self.beta_max - self.beta_min) - 0.5 * t * self.beta_min
 
     def sde(self, x: Tensor, t: Tensor) -> tuple[Tensor, Tensor]:

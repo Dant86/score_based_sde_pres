@@ -12,13 +12,18 @@ def denoising_score_matching_loss(
     sde: SDE,
     x0: Tensor,
 ) -> Tensor:
-    """Compute E_{t,x_0,ε} [‖ε_θ(x_t, t) − ε‖²].
+    """Compute the denoising score matching loss E_{t,x_0,ε}[‖ε_θ(x_t, t) − ε‖²].
 
-    Steps:
-      1. Sample t ~ Uniform(eps, T)
-      2. Sample ε ~ N(0, I)
-      3. Compute x_t = mean(x_0, t) + std(t) · ε
-      4. Return MSE between predicted and actual noise
+    Samples t uniformly from (eps, T), draws ε ~ N(0, I), forms x_t via
+    the SDE marginal, and returns the MSE between predicted and actual noise.
+
+    Args:
+        model (torch.nn.Module): noise-prediction network ε_θ(x_t, t).
+        sde (SDE): forward SDE providing marginal distribution parameters.
+        x0 (Tensor): clean image batch of shape (B, C, H, W).
+
+    Returns:
+        Tensor: scalar MSE loss averaged over the batch.
     """
     device = x0.device
     batch_size = x0.shape[0]

@@ -9,9 +9,17 @@ _NO_DECAY_PARAM_NAMES = {"bias"}
 
 
 def get_param_groups(model: nn.Module, weight_decay: float) -> list[dict]:
-    """Return two param groups: one with decay, one without.
+    """Return two optimizer parameter groups: one with decay and one without.
 
-    No-decay set: bias parameters and all parameters of norm layers.
+    The no-decay set contains bias parameters and all parameters of norm layers.
+
+    Args:
+        model (nn.Module): model whose parameters are to be split.
+        weight_decay (float): L2 regularisation coefficient for the decay group.
+
+    Returns:
+        list[dict]: two-element list of parameter group dicts compatible with
+            torch optimizers, the first with weight_decay and the second with 0.0.
     """
     decay: list[nn.Parameter] = []
     no_decay: list[nn.Parameter] = []
@@ -34,7 +42,16 @@ def get_param_groups(model: nn.Module, weight_decay: float) -> list[dict]:
 
 
 def _get_parent_module(root: nn.Module, param_name: str) -> nn.Module:
-    """Walk the module tree and return the direct parent of `param_name`."""
+    """Walk the module tree and return the direct parent module of a parameter.
+
+    Args:
+        root (nn.Module): root module to start traversal from.
+        param_name (str): fully-qualified parameter name as returned by
+            ``named_parameters()``, e.g. ``"layer.0.weight"``.
+
+    Returns:
+        nn.Module: immediate parent module that owns the parameter leaf.
+    """
     parts = param_name.split(".")
     module = root
     for part in parts[:-1]:

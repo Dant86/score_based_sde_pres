@@ -13,9 +13,19 @@ def get_cifar100_loaders(
     num_workers: int = 4,
     image_size: int = 32,
 ) -> tuple[DataLoader, DataLoader]:
-    """Return (train_loader, val_loader) for CIFAR-100.
+    """Return train and validation DataLoaders for CIFAR-100.
 
     Training split uses random horizontal flipping; val split does not.
+
+    Args:
+        data_dir (str): directory where CIFAR-100 data is stored or downloaded.
+        batch_size (int): number of samples per batch.
+        num_workers (int): number of subprocesses for data loading.
+        image_size (int): spatial resolution to resize images to.
+
+    Returns:
+        tuple: train DataLoader and validation DataLoader, each yielding
+            (image, label) batches with images normalised to [−1, 1].
     """
     norm = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 

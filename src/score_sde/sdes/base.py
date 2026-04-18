@@ -19,26 +19,47 @@ class SDE(ABC):
 
     @abstractmethod
     def sde(self, x: Tensor, t: Tensor) -> tuple[Tensor, Tensor]:
-        """Forward SDE coefficients.
+        """Return forward SDE coefficients f(x, t) and g(t).
+
+        Args:
+            x (Tensor): noisy image tensor of shape (B, C, H, W).
+            t (Tensor): continuous time values of shape (B,).
 
         Returns:
-            drift:     f(x, t)  shape (B, C, H, W)
-            diffusion: g(t)     shape (B,)
+            tuple: drift f(x, t) of shape (B, C, H, W) and diffusion g(t) of shape (B,).
         """
 
     @abstractmethod
     def marginal_prob(self, x0: Tensor, t: Tensor) -> tuple[Tensor, Tensor]:
-        """Parameters of p(x_t | x_0) = N(x_t; mean, std² I).
+        """Return parameters of p(x_t | x_0) = N(x_t; mean, std² I).
+
+        Args:
+            x0 (Tensor): clean image tensor of shape (B, C, H, W).
+            t (Tensor): continuous time values of shape (B,).
 
         Returns:
-            mean: shape (B, C, H, W)
-            std:  shape (B,)
+            tuple: mean of shape (B, C, H, W) and std of shape (B,).
         """
 
     @abstractmethod
     def prior_sampling(self, shape: tuple[int, ...], device: torch.device) -> Tensor:
-        """Sample x_T ~ p_T (the prior)."""
+        """Sample x_T from the prior p_T.
+
+        Args:
+            shape (tuple[int, ...]): desired output shape, e.g. (B, C, H, W).
+            device (torch.device): target device for the sample.
+
+        Returns:
+            Tensor: sample from the prior distribution.
+        """
 
     @abstractmethod
     def prior_logp(self, z: Tensor) -> Tensor:
-        """Log-density of the prior p_T. Shape: (B,)."""
+        """Compute the log-density of the prior p_T.
+
+        Args:
+            z (Tensor): sample tensor of shape (B, C, H, W).
+
+        Returns:
+            Tensor: per-sample log-probabilities of shape (B,).
+        """
