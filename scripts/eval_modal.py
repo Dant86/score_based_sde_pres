@@ -208,8 +208,11 @@ def generate_sde_grid(n_cols: int = 8, n_steps: int = 1000) -> dict[str, list]:
     timeout=TIMEOUT_SECONDS,
     volumes={CHECKPOINT_ROOT: volume},
 )
-def compute_all_fid(n_samples: int = 5000, n_steps: int = 1000) -> dict[str, float]:
+def compute_all_fid(n_samples: int = 5000, n_steps: int = 250) -> dict[str, float]:
     """Compute FID for VP-SDE, VE-SDE, and Sub-VP SDE using Euler-Maruyama.
+
+    Uses 250 steps by default (vs 1000 for sample grids) — FID is stable at
+    this resolution and it reduces wall time by 4×.
 
     Args:
         n_samples (int): number of generated images to use for FID computation.
@@ -406,6 +409,7 @@ def train_classifier(n_epochs: int = 50) -> None:
 def evaluate_all(
     output_dir: str = "./eval_output",
     n_steps: int = 1000,
+    fid_steps: int = 250,
     n_fid_samples: int = 5000,
 ) -> None:
     """Run all four evaluations in parallel and write Plotly HTML figures locally.
@@ -418,7 +422,9 @@ def evaluate_all(
 
     Args:
         output_dir (str): local directory to write HTML figures into.
-        n_steps (int): reverse diffusion steps for all samplers.
+        n_steps (int): reverse diffusion steps for sample grids.
+        fid_steps (int): reverse diffusion steps for FID generation (fewer is
+            fine — FID is stable at 250 and it runs 4× faster than 1000).
         n_fid_samples (int): images used for FID computation.
     """
     import os
@@ -433,7 +439,7 @@ def evaluate_all(
 
     # Fan out — all four run in parallel on separate H100 containers
     sde_handle = generate_sde_grid.spawn(n_steps=n_steps)
-    fid_handle = compute_all_fid.spawn(n_samples=n_fid_samples, n_steps=n_steps)
+    fid_handle = compute_all_fid.spawn(n_samples=n_fid_samples, n_steps=fid_steps)
     sampler_handle = generate_sampler_grid.spawn(n_steps=n_steps)
     class_handle = generate_class_grid.spawn(n_steps=n_steps)
 
@@ -501,12 +507,12 @@ def sde_comparison(n_steps: int = 1000, output_dir: str = "./eval_output") -> No
 
 
 @app.local_entrypoint()
-def fid_only(n_samples: int = 5000, n_steps: int = 1000, output_dir: str = "./eval_output") -> None:
+def fid_only(n_samples: int = 5000, n_steps: int = 250, output_dir: str = "./eval_output") -> None:
     """Compute and display FID for all three models, without generating figures.
 
     Args:
         n_samples (int): images to generate for FID.
-        n_steps (int): reverse diffusion steps.
+        n_steps (int): reverse diffusion steps (250 default — stable for FID).
         output_dir (str): directory to write ``fid_comparison.html`` into.
     """
     import os
